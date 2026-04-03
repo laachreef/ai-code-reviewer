@@ -1,0 +1,21 @@
+appId: com.example.ai-code-reviewer
+productName: ai-code-reviewer
+files:
+  - 'dist/**'
+  - 'dist-electron/**'
+  - 'electron/**'
+directories:
+  buildResources: build
+  output: release
+
+win:
+  icon: build/icon.png
+  target:
+    - nsis
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  shortcutName: "AI Code Reviewer"
