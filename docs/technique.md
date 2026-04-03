@@ -19,8 +19,9 @@ L'application repose sur un ensemble de technologies modernes combinant dévelop
                        │ IPC (preload.ts)
 ┌──────────────────────▼──────────────────────────────┐
 │                REACT FRONTEND (Renderer)             │
-│  App.tsx → Dashboard / SetupWizard / ReviewReport   │
-│           / HistoryPage / AboutPage                  │
+│  App.tsx → Dashboard (gère les fenêtres Modales:    │
+│  ConfigModal, HistoryModal, AboutModal,             │
+│  AgentManager) / ReviewReport                       │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -56,14 +57,15 @@ ai-code-reviewer/
 │   ├── store.ts            # Persistance JSON (~/.code-review-tool/)
 │   └── webhook.ts          # Serveur Express + tunnel ngrok
 ├── src/                    # Frontend React
-│   ├── App.tsx             # Routeur principal (dashboard | history | about)
+│   ├── App.tsx             # Composant racine
 │   └── components/
-│       ├── SetupWizard.tsx # Configuration en 3 étapes (Git, IA, Webhooks)
-│       ├── Dashboard.tsx   # Vue principale + stats PRs + lancement analyse
-│       ├── ReviewReport.tsx# Rapport de revue + diff contextuel + actions
-│       ├── HistoryPage.tsx # Historique avec recherche et tri
-│       ├── AboutPage.tsx   # Page À propos (version, contact, stack)
-│       └── AgentManager.tsx# CRUD des agents personnalisés
+│       ├── Modal.tsx       # Composant générique de fenêtre modale
+│       ├── ConfigModal.tsx # Fenêtre de configuration (Git, IA, Webhooks)
+│       ├── Dashboard.tsx   # Vue principale (gère l'état de toutes les modales)
+│       ├── ReviewReport.tsx# Rapport de revue + diff + actions
+│       ├── HistoryModal.tsx# Fenêtre d'historique des actions
+│       ├── AboutModal.tsx  # Fenêtre À propos
+│       └── AgentManager.tsx# Gestion des agents AI
 ├── docs/                   # Documentation (ce dossier)
 │   ├── fonctionnel.md
 │   └── technique.md

@@ -85,8 +85,10 @@ Au premier démarrage, l'assistant de configuration s'ouvre automatiquement :
 ```
 ai-code-reviewer/
 ├── electron/        # Backend Electron (Node.js)
-├── src/             # Frontend React
-├── docs/            # Documentation
+│   ├── App.tsx             # Composant racine
+│   └── components/
+│       └── *Modal.tsx      # Fenêtres modales de l'interface
+├── docs/                   # Documentation
 │   ├── fonctionnel.md
 │   └── technique.md
 ├── README.md        # Ce fichier
@@ -98,3 +100,5 @@ ai-code-reviewer/
 ## 🐛 Signaler un bug / 💡 Proposer une idée
 
 Contactez le développeur à : [ac.tlili@groupeonepoint.com](mailto:ac.tlili@groupeonepoint.com?subject=AI%20Code%20Reviewer%20-%20Feedback)
+
+© 2026 Achref TLILI — ONEPOINT · All rights reserved

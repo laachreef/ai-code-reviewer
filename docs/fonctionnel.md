@@ -15,8 +15,8 @@ L'application récupère automatiquement les différences (diffs) d'une Pull Req
 
 ## 2. Parcours Utilisateur (Workflow)
 
-### Étape 1 — Configuration initiale (Setup Wizard)
-L'utilisateur configure l'application en 3 sections :
+### Étape 1 — Configuration initiale (ConfigModal)
+L'utilisateur configure l'application dans une fenêtre superposée :
 - **Accès Git** : Sélection de la plateforme (GitHub / GitLab) + token d'accès personnel
 - **Intelligence Artificielle** : Fournisseur (Gemini / Groq) + modèle + clé API (validée à la saisie)
 - **Webhooks (optionnel)** : Token Ngrok pour recevoir les PRs automatiquement en temps réel
@@ -37,8 +37,8 @@ L'utilisateur configure l'application en 3 sections :
   - ✓ Approuver et Merger (avec option de suppression de la branche source)
   - Envoyer X commentaires
 
-### Étape 4 — Historique
-- Page dédiée listant toutes les actions passées
+### Étape 4 — Historique (HistoryModal)
+- Fenêtre dédiée listant toutes les actions passées
 - Recherche textuelle + tri par date ou projet
 
 ---
