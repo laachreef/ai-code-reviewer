@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { ThemeContext } from '../App';
 import AgentManager from './AgentManager';
 import AnalysisConfigModal from './AnalysisConfigModal';
 import HistoryModal from './HistoryModal';
@@ -15,11 +16,13 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ config, setConfig, onRunReview, reviewProgress, agentStatuses, lastHistoryId }: DashboardProps) {
+  const { isDark, toggleDark } = useContext(ThemeContext);
   const [repoId, setRepoId] = useState('');
-  const [prId, setPrId] = useState('');
+  const [prId, setPrId] = useState<string | number>('');
   const [prTitle, setPrTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
+  const [elapsedTime, setElapsedTime] = useState(0);
   
   // Modals state
   const [showAgentManager, setShowAgentManager] = useState(false);
@@ -55,6 +58,18 @@ export default function Dashboard({ config, setConfig, onRunReview, reviewProgre
       });
     }
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      timer = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      setElapsedTime(0);
+    }
+    return () => clearInterval(timer);
+  }, [loading]);
 
   const loadGlobalPendingPRs = async () => {
     setLoadingGlobalCount(true);
@@ -98,8 +113,8 @@ export default function Dashboard({ config, setConfig, onRunReview, reviewProgre
   };
 
   const startReview = async () => {
-    if (!repoId || !prId) {
-      alert('Veuillez sélectionner une PR dans la liste ci-dessus.');
+    if (!repoId || (config?.platform !== 'local' && !prId)) {
+      alert(config?.platform === 'local' ? 'Veuillez sélectionner un dossier local.' : 'Veuillez sélectionner une PR dans la liste ci-dessus.');
       return;
     }
     if (selectedAgents.length === 0) {
@@ -112,6 +127,7 @@ export default function Dashboard({ config, setConfig, onRunReview, reviewProgre
   const handleConfirmReview = async (selectedFilesForContext: string[], minSeverity: string, strategy: 'grouped' | 'sequential') => {
     setShowAnalysisConfigModal(false);
     setLoading(true);
+    setElapsedTime(0);
     setTimeout(() => {
       progressRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
@@ -124,20 +140,36 @@ export default function Dashboard({ config, setConfig, onRunReview, reviewProgre
     }
   };
 
+  const handleCancelReview = async () => {
+    if (!loading) return;
+    try {
+      await (window as any).api.cancelReview();
+      setLoading(false);
+    } catch (e) {
+      console.error("Cancel failed", e);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 p-6 transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-8">
 
         {/* Header - Modernisé et organisé */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 transition-colors">
           <div className="flex items-center gap-4">
-            <img src="./icon.png" alt="Logo" className="w-12 h-12 rounded-full shadow-md border border-gray-50" />
+            <img src="./icon.png" alt="Logo" className="w-12 h-12 rounded-full shadow-md border border-gray-50 dark:border-slate-600" />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black text-gray-900 tracking-tight">AI Code Reviewer</h1>
-                <span className="bg-blue-100 text-blue-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Dashboard</span>
+                <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">AI Code Reviewer</h1>
+                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Dashboard</span>
               </div>
-              <p className="text-sm text-gray-500 font-medium mt-0.5">Analysez automatiquement vos pull requests</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400 font-medium mt-0.5">Analysez automatiquement vos pull requests</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -165,12 +197,67 @@ export default function Dashboard({ config, setConfig, onRunReview, reviewProgre
             >
               ℹ️ À propos
             </button>
+            <button
+              onClick={toggleDark}
+              className="flex items-center justify-center w-10 h-10 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-amber-300 border border-slate-200 dark:border-slate-600 rounded-xl transition-all shadow-sm ml-2"
+              title={isDark ? 'Passer au thème clair' : 'Passer au thème sombre'}
+            >
+              {isDark ? '☀️' : '🌙'}
+            </button>
           </div>
         </div>
 
-        {/* Stats — PRs en attente globales avec détail repos */}
-        <div className="bg-white rounded-2xl shadow-lg border border-orange-100 overflow-hidden">
-          {/* Header de la tuile */}
+        {/* Local Folder Selector or Global PRs Stats */}
+        {config?.platform === 'local' ? (
+          <div className="bg-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden p-8 animate-in slide-in-from-top-4 duration-500">
+            <div className="flex flex-col items-center justify-center text-center gap-4">
+              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Analyse de Dépôt Local</h2>
+                <p className="text-gray-500 mt-2 max-w-lg mx-auto">
+                  Analysez toutes vos modifications locales (qu'elles soient stagées ou non) d'un seul clic. Idéal avant de créer votre commit ! Aucune clé d'API requise.
+                </p>
+              </div>
+              
+              <div className="mt-4 flex flex-col items-center gap-3 w-full max-w-md">
+                <button
+                  onClick={async () => {
+                    const dir = await (window as any).api.selectLocalDirectory();
+                    if (dir) {
+                      setRepoId(dir);
+                      setPrId(0);
+                      setPrTitle('Modifications Locales');
+                    }
+                  }}
+                  className="px-8 py-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-3 text-lg"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Choisir un dossier Git local
+                </button>
+                
+                {repoId && (
+                  <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between animate-in zoom-in-95 duration-200">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm font-mono text-slate-700 truncate" title={repoId}>{repoId}</span>
+                    </div>
+                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold uppercase shrink-0">Prêt</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-lg border border-orange-100 overflow-hidden">
+            {/* Header de la tuile */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
@@ -264,6 +351,7 @@ export default function Dashboard({ config, setConfig, onRunReview, reviewProgre
             )}
           </div>
         </div>
+        )}
 
         {/* Main Action Card — Simplifiée */}
         <div ref={analysisCardRef} className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 scroll-mt-6 transition-all duration-500">
@@ -273,12 +361,16 @@ export default function Dashboard({ config, setConfig, onRunReview, reviewProgre
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900">PR/MR sélectionnée</h3>
+            <h3 className="text-xl font-semibold text-gray-900">{config?.platform === 'local' ? 'Dépôt local sélectionné' : 'PR/MR sélectionnée'}</h3>
           </div>
 
           {!repoId ? (
             <div className="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-              <p className="text-gray-500 italic">Sélectionnez une Pull Request dans la liste ci-dessus pour commencer l'analyse.</p>
+              <p className="text-gray-500 italic">
+                {config?.platform === 'local' 
+                  ? 'Sélectionnez un dossier local via le bouton ci-dessus pour commencer l\'analyse.' 
+                  : 'Sélectionnez une Pull Request dans la liste ci-dessus pour commencer l\'analyse.'}
+              </p>
             </div>
           ) : (
             <div className="bg-blue-50 rounded-2xl p-6 mb-8 border border-blue-100 flex items-center justify-between">
@@ -403,13 +495,28 @@ export default function Dashboard({ config, setConfig, onRunReview, reviewProgre
         {/* Progress Section — scrollTarget */}
         {loading && (
           <div ref={progressRef} className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 scroll-mt-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-xl font-semibold text-gray-900">Progression de l'analyse</h4>
+                  <p className="text-sm font-medium text-blue-600 font-mono mt-0.5">⏱ Temps écoulé : {formatTime(elapsedTime)}</p>
+                </div>
               </div>
-              <h4 className="text-xl font-semibold text-gray-900">Progression de l'analyse</h4>
+              <button 
+                onClick={handleCancelReview}
+                className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-xl font-bold flex items-center gap-2 transition-colors"
+                title="Annuler l'analyse en cours"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Annuler
+              </button>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               {selectedAgents.map(agentId => {

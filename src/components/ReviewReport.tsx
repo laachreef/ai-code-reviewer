@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 
 const getDiffContext = (rawDiff: string, lineTarget: number | string) => {
   if (!rawDiff || !lineTarget) return null;
@@ -39,6 +40,17 @@ const getDiffContext = (rawDiff: string, lineTarget: number | string) => {
 export default function ReviewReport({ review, onDone }: { review: any, onDone: Function }) {
   const [selected, setSelected] = useState<Set<number>>(new Set(review.violations.map((_:any, i:number) => i)));
   const [editedViolations, setEditedViolations] = useState<any[]>(review.violations);
+
+  useEffect(() => {
+    if (review.violations.length === 0) {
+      confetti({
+        particleCount: 150,
+        spread: 90,
+        origin: { y: 0.5 },
+        colors: ['#4ade80', '#3b82f6', '#f59e0b', '#8b5cf6']
+      });
+    }
+  }, [review]);
 
   const handleViolationEdit = (index: number, field: string, value: string) => {
     const newViolations = [...editedViolations];
@@ -96,23 +108,23 @@ export default function ReviewReport({ review, onDone }: { review: any, onDone: 
     onDone(null);
   };
 
-  return (
-    <div className="flex flex-col bg-slate-50 min-h-screen text-slate-900 font-sans">
+    return (
+    <div className="flex flex-col bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300">
       {/* Header compact clair */}
-      <div className="flex items-center gap-4 px-8 py-6 border-b border-slate-200 bg-white sticky top-0 z-20 shadow-sm">
-        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+      <div className="flex items-center gap-4 px-8 py-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 sticky top-0 z-20 shadow-sm transition-colors">
+        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100 dark:shadow-indigo-900/40">
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Rapport d'Analyse</h1>
-          <p className="text-sm font-medium text-slate-500">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Rapport d'Analyse</h1>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             {review.repoId} <span className="mx-2 opacity-30">/</span> PR #{review.prId}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-4">
-           <div className="px-4 py-2 bg-indigo-50 rounded-xl border border-indigo-100 text-xs font-bold text-indigo-600 uppercase tracking-widest">
+           <div className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800 text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
              {selected.size} / {review.violations.length} SELECTIONNES
            </div>
         </div>
@@ -125,7 +137,7 @@ export default function ReviewReport({ review, onDone }: { review: any, onDone: 
             ${v.severity === 'error' ? 'border-red-100' : v.severity === 'warning' ? 'border-amber-100' : 'border-indigo-100'}`}>
 
             <div className="flex flex-col items-center gap-6 py-2 shrink-0">
-               <input type="checkbox" className="w-6 h-6 rounded-lg border-2 border-slate-200 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
+               <input type="checkbox" className="w-6 h-6 rounded-lg border-2 border-slate-200 bg-transparent text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                       checked={selected.has(i)} onChange={() => toggleSelect(i)} />
                <div className={`w-1.5 h-full rounded-full opacity-60 ${v.severity === 'error' ? 'bg-red-500' : v.severity === 'warning' ? 'bg-amber-500' : 'bg-indigo-500'}`} />
             </div>
@@ -149,7 +161,7 @@ export default function ReviewReport({ review, onDone }: { review: any, onDone: 
                   v.severity === 'warning' ? 'bg-amber-50 text-amber-600 border-amber-200' :
                   'bg-indigo-50 text-indigo-600 border-indigo-200'
                 }`}>{v.severity}</span>
-                <span className="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500 font-bold uppercase tracking-wider">Agent: {v.agent}</span>
+                <span className="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500 font-bold uppercase tracking-wider">Agent: {v.agent || 'Auto'}</span>
                 <span className="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-900 font-black tracking-widest">LIGNE: {v.line}</span>
               </div>
               
@@ -158,7 +170,7 @@ export default function ReviewReport({ review, onDone }: { review: any, onDone: 
                   value={editedViolations[i].message}
                   onChange={(e) => handleViolationEdit(i, 'message', e.target.value)}
                   className="w-full bg-transparent border-none p-0 font-extrabold text-slate-900 focus:ring-0 mb-2 cursor-text leading-tight resize-none h-auto overflow-hidden text-xl"
-                  rows={1}
+                  rows={2}
                   onInput={(e: any) => {
                     e.target.style.height = 'auto';
                     e.target.style.height = e.target.scrollHeight + 'px';
@@ -183,60 +195,73 @@ export default function ReviewReport({ review, onDone }: { review: any, onDone: 
               </div>
 
               {review.rawDiff && getDiffContext(review.rawDiff, v.line) && (
-                <div className="bg-slate-900 rounded-2xl font-mono text-[11px] border border-slate-800 overflow-x-auto shadow-2xl p-2 mt-4">
-                  {(getDiffContext(review.rawDiff, v.line) || []).map((cLine: any, j: number) => (
-                    <div key={j} className={`px-4 py-1.5 flex transition-colors ${
-                      cLine.text.startsWith('+') ? 'bg-emerald-500/10 text-emerald-400 font-bold' :
-                      cLine.text.startsWith('-') ? 'bg-red-500/10 text-red-400 font-bold' :
-                      'text-slate-400 opacity-60'
-                    }`}>
-                      <span className="inline-block w-10 text-right mr-5 text-slate-700 border-r border-white/5 pr-4 select-none shrink-0 font-black">
-                        {cLine.num || ' '}
-                      </span>
-                      <span className="whitespace-pre">{cLine.text}</span>
-                    </div>
-                  ))}
-                </div>
+                <details className="mt-4 group">
+                  <summary className="text-xs font-bold text-slate-500 hover:text-indigo-600 cursor-pointer list-none flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 w-max transition-colors">
+                    <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    Voir l'extrait de code
+                  </summary>
+                  <div className="bg-slate-900 dark:bg-[#0f172a] rounded-2xl font-mono text-[11px] border border-slate-800 overflow-x-auto shadow-inner p-3 mt-3">
+                    {(getDiffContext(review.rawDiff, v.line) || []).map((cLine: any, j: number) => (
+                      <div key={j} className={`px-4 py-1.5 flex transition-colors rounded ${
+                        cLine.text.startsWith('+') ? 'bg-emerald-500/10 text-emerald-400 font-bold' :
+                        cLine.text.startsWith('-') ? 'bg-red-500/10 text-red-400 font-bold' :
+                        'text-slate-400 opacity-60 hover:opacity-100 hover:bg-white/5'
+                      }`}>
+                        <span className="inline-block w-10 text-right mr-5 text-slate-600 border-r border-white/10 pr-4 select-none shrink-0 font-medium">
+                          {cLine.num || ' '}
+                        </span>
+                        <span className="whitespace-pre">{cLine.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
               )}
             </div>
           </div>
         ))}
 
-        {review.violations.length === 0 && (
+          {review.violations.length === 0 && (
            <div className="flex flex-col items-center justify-center py-40 text-slate-300 gap-6">
-             <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 border-4 border-white shadow-xl shadow-emerald-100">
-               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+             <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/40 rounded-full flex items-center justify-center text-emerald-500 dark:text-emerald-400 border-4 border-white dark:border-slate-800 shadow-2xl shadow-emerald-100 dark:shadow-emerald-900/50">
+               <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                </svg>
              </div>
-             <span className="font-black uppercase tracking-[0.2em] text-sm text-slate-400">Aucun problème détecté !</span>
+             <span className="font-black uppercase tracking-[0.2em] text-sm text-slate-500 dark:text-slate-400">Aucun problème détecté !</span>
+             <span className="font-bold text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-full mt-2">✨ Base de code parfaite</span>
            </div>
         )}
       </div>
 
       {/* Barre d'action fixe en bas clair */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200 px-10 py-6 flex items-center justify-end gap-5 z-30 shadow-[0_-15px_40px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-10 py-6 flex items-center justify-end gap-5 z-30 shadow-[0_-15px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-15px_40px_rgba(0,0,0,0.5)]">
         <button
           onClick={goBack}
-          className="bg-white text-slate-500 hover:text-slate-900 px-8 py-3.5 rounded-2xl font-black transition-all text-xs border border-slate-200 tracking-widest active:scale-95"
+          className="bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white px-8 py-3.5 rounded-2xl font-black transition-all text-xs border border-slate-200 dark:border-slate-700 tracking-widest active:scale-95"
         >
           ← RETOUR
         </button>
 
-        <button
-          onClick={() => setShowMergeConfirm(true)}
-          className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3.5 rounded-2xl font-black transition-all text-xs tracking-widest active:scale-95 shadow-xl shadow-slate-900/20"
-        >
-          APPROUVER & MERGER
-        </button>
+        {review.prId !== 0 && (
+          <>
+            <button
+              onClick={() => setShowMergeConfirm(true)}
+              className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3.5 rounded-2xl font-black transition-all text-xs tracking-widest active:scale-95 shadow-xl shadow-slate-900/20"
+            >
+              APPROUVER & MERGER
+            </button>
 
-        <button
-          onClick={submitReview}
-          disabled={selected.size === 0}
-          className="bg-indigo-600 px-10 py-3.5 rounded-2xl font-black hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-200 text-xs text-white tracking-widest disabled:opacity-20 disabled:cursor-not-allowed active:scale-95"
-        >
-          ENVOYER {selected.size} CMTS
-        </button>
+            <button
+              onClick={submitReview}
+              disabled={selected.size === 0}
+              className="bg-indigo-600 px-10 py-3.5 rounded-2xl font-black hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-200 text-xs text-white tracking-widest disabled:opacity-20 disabled:cursor-not-allowed active:scale-95"
+            >
+              ENVOYER {selected.size} CMTS
+            </button>
+          </>
+        )}
       </div>
 
       {/* Modal de Confirmation Clair */}

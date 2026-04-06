@@ -1,7 +1,7 @@
 import React from 'react';
 import Modal from './Modal';
 
-const APP_VERSION = '0.1.0-beta';
+const APP_VERSION = '0.2.0-beta';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -23,9 +23,9 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
         <div>
           <h2 className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-2">Description</h2>
           <p className="text-gray-600 leading-relaxed">
-            Application de bureau qui automatise la revue de code sur GitHub et GitLab grâce à l'intelligence artificielle multi-agents. 
+            Application de bureau qui automatise la revue de code pour des répertoires locaux ou sur GitHub et GitLab grâce à l'intelligence artificielle multi-agents. 
             Chaque agent est spécialisé dans un domaine précis (Architecture, SOLID, Sécurité, Tests) et analyse automatiquement 
-            les Pull Requests / Merge Requests pour produire des suggestions actionnables.
+            le code pour produire des suggestions actionnables ou les publier en ligne.
           </p>
         </div>
 

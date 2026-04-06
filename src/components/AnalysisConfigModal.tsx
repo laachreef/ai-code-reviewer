@@ -177,6 +177,7 @@ const FileTreeNode = ({
 export default function AnalysisConfigModal({ isOpen, onClose, onConfirm, repoId, prId }: AnalysisConfigModalProps) {
   const [prFiles, setPrFiles] = useState<string[]>([]);
   const [allFiles, setAllFiles] = useState<RepoFile[]>([]);
+  const [fastModeTokenCount, setFastModeTokenCount] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -195,12 +196,14 @@ export default function AnalysisConfigModal({ isOpen, onClose, onConfirm, repoId
   const loadData = async () => {
     setLoading(true);
     try {
-      const [modified, total] = await Promise.all([
+      const [modified, total, diffLen] = await Promise.all([
         (window as any).api.getPRFiles(repoId, prId),
-        (window as any).api.getRepoFiles(repoId, prId)
+        (window as any).api.getRepoTree(repoId, prId),
+        (window as any).api.getDiffLength(repoId, prId)
       ]);
       setPrFiles(modified);
       setAllFiles(total);
+      setFastModeTokenCount(Math.ceil((diffLen || 0) / 4));
       setSelectedFiles([]);
       setExpandedFolders(new Set()); 
     } catch (error) {
@@ -220,10 +223,8 @@ export default function AnalysisConfigModal({ isOpen, onClose, onConfirm, repoId
   }, [selectedFiles, allFiles, mode]);
 
   const fastModeTokens = useMemo(() => {
-    const modifiedSizes = allFiles.filter(f => prFiles.includes(f.path)).map(f => f.size);
-    const totalBytes = modifiedSizes.reduce((sum, s) => sum + s, 0);
-    return Math.ceil(totalBytes / 4).toLocaleString();
-  }, [allFiles, prFiles]);
+    return fastModeTokenCount.toLocaleString();
+  }, [fastModeTokenCount]);
 
   if (!isOpen) return null;
 
@@ -329,7 +330,7 @@ export default function AnalysisConfigModal({ isOpen, onClose, onConfirm, repoId
               <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-100 rounded-2xl">
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">Estimation du Diff</span>
-                  <span className="text-[10px] text-amber-600 font-medium">Basé sur la taille totale des fichiers modifiés</span>
+                  <span className="text-[10px] text-amber-600 font-medium">Basé sur la taille réelle du diff des modifications</span>
                 </div>
                 <div className="text-right">
                   <span className="text-xl font-black text-amber-700">~{fastModeTokens}</span>

@@ -1,15 +1,15 @@
 # Documentation Fonctionnelle — AI Code Reviewer
 
-> Version 0.1.0-beta — Application de bureau (Electron)  
+> Version 0.2.0-beta — Application de bureau (Electron)  
 > Développeur : Achref TLILI — ONEPOINT
 
 ---
 
 ## 1. Objectif du Projet
 
-**AI Code Reviewer** est une application de bureau conçue pour automatiser et assister la revue de code sur des plateformes Git (GitHub, GitLab).
+**AI Code Reviewer** est une application de bureau conçue pour automatiser et assister la revue de code sur des répertoires locaux ou plateformes distantes (GitHub, GitLab).
 
-L'application récupère automatiquement les différences (diffs) d'une Pull Request / Merge Request, puis les fait analyser par de multiples agents d'intelligence artificielle spécialisés (Clean Architecture, SOLID, Sécurité, Tests...) et publie les commentaires directement sur la plateforme Git.
+L'application récupère automatiquement les différences (diffs) des modifications locales ou d'une Pull Request / Merge Request, puis les fait analyser par de multiples agents d'intelligence artificielle spécialisés (Clean Architecture, SOLID, Sécurité, Tests...) et permet d'appliquer les suggestions ou de publier les commentaires directement sur la plateforme Git.
 
 ---
 
@@ -17,16 +17,16 @@ L'application récupère automatiquement les différences (diffs) d'une Pull Req
 
 ### Étape 1 — Configuration initiale (ConfigModal)
 L'utilisateur configure l'application dans une fenêtre superposée :
-- **Accès Git** : Sélection de la plateforme (GitHub / GitLab) + token d'accès personnel
-- **Intelligence Artificielle** : Fournisseur (Gemini / Groq) + modèle + clé API (validée à la saisie)
+- **Accès Git** : Sélection de la plateforme (Git local / GitHub / GitLab) + token d'accès personnel pour les plateformes cloud
+- **Intelligence Artificielle** : Fournisseur (Gemini / Groq / Personnalisé Ollama, LM Studio) + modèle + clés (validées)
 - **Webhooks (optionnel)** : Token Ngrok pour recevoir les PRs automatiquement en temps réel
 
 ### Étape 2 — Tableau de Bord (Dashboard)
-- Visualisation des **PRs / MRs en attente** sur tous les dépôts (avec détail par repo, titre, date et heure)
-- Sélection du **dépôt** via une liste déroulante avec recherche
-- Sélection de la **PR en attente** pour ce dépôt
-- Sélection des **agents d'analyse** (cocher/décocher tout)
-- Lancement de l'analyse → scroll automatique vers la section de progression
+- Visualisation des **PRs / MRs en attente** sur vos dépôts distants, ou lancement sur un dossier **local**
+- Sélection des **agents d'analyse** (cocher/décocher) et des configurations de sévérité minimales
+- Choix de la **Stratégie d'analyse** : Rapide (analyse des modifications uniquement) ou Deep (analyse étendue sur les fichiers sélectionnés)
+- Exécution **Groupée** (un seul appel LLM consolidé optimisé) ou **Séquentielle** (appels séparés par agent)
+- Lancement de l'analyse → suivi en temps réel de la progression par agent (attente, requête, complété)
 
 ### Étape 3 — Rapport de Review (Review Report)
 - Liste complète des observations par agent avec sévérité, ligne concernée, message et suggestion
@@ -37,8 +37,9 @@ L'utilisateur configure l'application dans une fenêtre superposée :
   - ✓ Approuver et Merger (avec option de suppression de la branche source)
   - Envoyer X commentaires
 
-### Étape 4 — Historique (HistoryModal)
-- Fenêtre dédiée listant toutes les actions passées
+- Fenêtre dédiée listant toutes les analyses et actions passées
+- Supporte tous les types d'analyse (Locale, Distante) avec affichage du **nombre de tokens (taille du diff)** et de la **durée de l'analyse**
+- **Vue extensible** pour visualiser la liste des violations détectées et des agents utilisés sans avoir à refaire la revue
 - Recherche textuelle + tri par date ou projet
 
 ---
@@ -55,16 +56,13 @@ L'utilisateur configure l'application dans une fenêtre superposée :
 
 ---
 
-## 4. Fonctionnalités Clés
-
-| Fonctionnalité | Description |
+| Type de plateforme | Local (Dossier Git) et Cloud (GitHub / GitLab) |
 |---|---|
-| Multi-agents | Analyse simultanée par plusieurs spécialistes IA |
-| Publication automatique | Commentaires postés directement sur GitHub/GitLab |
-| Webhooks (ngrok) | Réception automatique des nouvelles PRs en temps réel |
-| Historique | Traçabilité de toutes les actions passées |
-| Merge intégré | Option de merge + suppression de branche depuis l'app |
-| Validation des tokens | Vérification en temps réel des clés Git et LLM |
+| Multi-agents | Analyse simultanée par plusieurs spécialistes IA et création d'agents sur mesure (instructions JSON) |
+| Multi-fournisseurs | Support multiplateforme d'IA (Gemini, Groq) ainsi que de endpoints OpenAI-compatibles (Ollama, LMStudio) |
+| Analyse Deep/Fast | Évaluation contextuelle ou limitées aux différences strictes avec stratégies groupées/séquentielles |
+| Historique Avancé | Traçabilité complète du temps d'exécution, des tokens et des violations enregistrées |
+| Mode sombre/clair | L'interface bascule dynamiquement et les cartes du rapport (ReviewReport) préservent le contraste |
 
 ---
 

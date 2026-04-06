@@ -7,7 +7,11 @@ interface HistoryItem {
   prId: string | number;
   action: string;
   date: string;
-  violations?: number;
+  violations?: any[];
+  violationsCount?: number;
+  duration?: number;
+  platform?: string;
+  agents?: string[];
 }
 
 interface HistoryModalProps {
@@ -21,6 +25,7 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<'date' | 'repo'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -62,6 +67,7 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
   const actionColor = (action: string) => {
     if (action.includes('merg') || action.includes('Merg')) return 'bg-green-100 text-green-800 border-green-200';
     if (action.includes('commentaire') || action.includes('Commentaire')) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (action.includes('Analyse')) return 'bg-indigo-100 text-indigo-800 border-indigo-200';
     return 'bg-gray-100 text-gray-700 border-gray-200';
   };
 
@@ -115,11 +121,12 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
         ) : (
           <div className="space-y-3">
             {filtered.map(item => (
-              <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-4 hover:shadow-md hover:border-blue-300 transition-all group">
-                {/* Icon */}
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-inner ${
-                  item.action?.includes('merg') || item.action?.includes('Merg') ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                }`}>
+              <div key={item.id} className="relative z-10 flex flex-col group">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-4 hover:shadow-md hover:border-blue-300 transition-all group z-10 relative">
+                  {/* Icon */}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-inner ${
+                    item.action?.includes('merg') || item.action?.includes('Merg') ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                  }`}>
                   {(item.action?.includes('merg') || item.action?.includes('Merg')) ? (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -140,15 +147,22 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
                     <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${actionColor(item.action)} ml-2`}>
                       {item.action}
                     </span>
+                    {item.platform && (
+                      <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-200 px-2 rounded-full ml-1">
+                        {item.platform === 'local' ? 'LOCAL' : 'REMOTE'}
+                      </span>
+                    )}
                   </div>
-                  {item.violations !== undefined && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  {item.violationsCount !== undefined || item.violations !== undefined ? (
+                    <div className="flex items-center gap-1.5 mt-1.5 cursor-pointer select-none w-max" onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
+                      <svg className={`w-4 h-4 text-orange-500 transition-transform ${expandedId === item.id ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
-                      <p className="text-xs font-semibold text-orange-600">{item.violations} violation(s) détectée(s)</p>
+                      <p className="text-xs font-semibold text-orange-600 hover:text-orange-700">
+                        {item.violationsCount ?? (item.violations ? item.violations.length : 0)} violation(s) détectée(s)
+                      </p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Date */}
@@ -156,6 +170,43 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
                   <div className="text-sm font-bold text-gray-700">{new Date(item.date).toLocaleDateString('fr-FR')}</div>
                   <div className="text-xs font-semibold text-gray-500 mt-0.5">{new Date(item.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
+              </div>
+              
+              {/* Expanded details */}
+              {expandedId === item.id && (
+                <div className="bg-gray-50 border-x border-b border-gray-200 rounded-b-xl -mt-6 pt-8 pb-4 px-5 animate-in slide-in-from-top-2 z-0 relative shadow-inner">
+                  {item.duration !== undefined && (
+                    <div className="text-sm text-gray-600 mb-2">
+                      <span className="font-bold">Durée d'exécution : </span>
+                      {item.duration}s
+                    </div>
+                  )}
+                  {item.agents && item.agents.length > 0 && (
+                    <div className="text-sm text-gray-600 flex flex-wrap gap-2 items-center mb-4">
+                      <span className="font-bold">Agents : </span>
+                      {item.agents.map(a => (
+                        <span key={a} className="bg-white border border-gray-200 px-2 py-0.5 rounded text-xs font-bold text-gray-700">{a}</span>
+                      ))}
+                    </div>
+                  )}
+                  {item.violations && item.violations.length > 0 ? (
+                    <div className="space-y-3 mt-3">
+                       {item.violations.map((v: any, j: number) => (
+                         <div key={j} className="bg-white border border-gray-200 rounded-lg p-3 text-sm shadow-sm">
+                           <div className="flex gap-2 items-center mb-2">
+                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${v.severity === 'error' ? 'bg-red-100 text-red-700' : v.severity === 'warning' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{v.severity}</span>
+                             <span className="font-mono text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 truncate truncate">{v.file}:{v.line}</span>
+                           </div>
+                           <p className="font-bold text-gray-800 mb-1 leading-snug">{v.message}</p>
+                           {v.suggestion && <p className="text-gray-500 text-xs mt-1 leading-relaxed border-l-2 border-indigo-200 pl-2 py-0.5">{v.suggestion}</p>}
+                         </div>
+                       ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic mt-2">Aucun détail de violation.</p>
+                  )}
+                </div>
+              )}
               </div>
             ))}
           </div>

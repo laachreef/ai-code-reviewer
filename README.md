@@ -2,15 +2,17 @@
 
 > Application de revue de code automatisée par IA multi-agents  
 > Développeur : **Achref TLILI** — ONEPOINT  
-> Version : **0.1.0-beta** (version de test)  
+> Version : **0.2.0-beta** (version de test)  
 > Contact : [ac.tlili@groupeonepoint.com](mailto:ac.tlili@groupeonepoint.com)
 
 ---
 
 ## ✨ Fonctionnalités
 
-- 🔍 Analyse automatique des Pull Requests / Merge Requests
-- 🤖 Multi-agents IA spécialisés (Clean Architecture, SOLID, Security, Tests)
+- 🔍 Analyse automatique des répertoires locaux et des Pull Requests / Merge Requests
+- 🤖 Multi-agents IA spécialisés (Clean Architecture, SOLID, Security, Tests) et support d'agents IA personnalisés
+- 🧠 Stratégies d'analyse "Rapide" (diff seulement) ou "Deep" (contexte multi-fichiers)
+- ⚙️ Appels IA paramétrables : exécution Groupée (rapide) ou Séquentielle (détaillée)
 - 💬 Publication des commentaires directement sur GitHub / GitLab
 - 🔔 Détection en temps réel des nouvelles PRs via webhooks ngrok
 - 📊 Dashboard avec toutes les PRs en attente sur tous vos dépôts
@@ -25,7 +27,7 @@
 - **Node.js** ≥ 18 ([nodejs.org](https://nodejs.org))
 - **npm** ≥ 9
 - Un compte **GitHub** ou **GitLab** avec un token d'accès personnel
-- Une clé API **Google Gemini** ([aistudio.google.com](https://aistudio.google.com)) ou **Groq** ([console.groq.com](https://console.groq.com))
+- Une clé API **Google Gemini** ([aistudio.google.com](https://aistudio.google.com)) ou **Groq** ([console.groq.com](https://console.groq.com)), ou un point de terminaison personnalisé (ex: Ollama, LM Studio).
 
 ### Installation
 
@@ -73,10 +75,10 @@ Cette commande effectue 3 étapes automatiquement :
 
 Au premier démarrage, l'assistant de configuration s'ouvre automatiquement :
 
-1. **Plateforme Git** : GitHub ou GitLab
-2. **Token Git** : Personal Access Token avec droits `repo` (GitHub) ou `api` (GitLab)
-3. **Fournisseur IA** : Gemini ou Groq + clé API
-4. **Token Ngrok** (optionnel) : Pour les webhooks automatiques
+1. **Plateforme Git** : GitHub, GitLab, ou un Répertoire Local
+2. **Token Git** : Personal Access Token avec droits `repo` (GitHub) ou `api` (GitLab) pour les accès distants
+3. **Fournisseur IA** : Gemini, Groq, ou un Fournisseur Personnalisé (Ollama, LM Studio)
+4. **Token Ngrok** (optionnel) : Pour les webhooks automatiques sur les dépôts distants
 
 ---
 

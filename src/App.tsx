@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import Dashboard from './components/Dashboard';
 import ReviewReport from './components/ReviewReport';
+
+export const ThemeContext = createContext({ isDark: false, toggleDark: () => {} });
 
 export default function App() {
   const [config, setConfig] = useState<any>(null);
@@ -15,6 +17,23 @@ export default function App() {
   });
 
   const [lastHistoryId, setLastHistoryId] = useState<string | null>(null);
+
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    const saved = localStorage.getItem('theme');
+    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  const toggleDark = () => setIsDark(!isDark);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
 
   useEffect(() => {
     (window as any).api.getConfig().then((cfg: any) => {
@@ -52,7 +71,28 @@ export default function App() {
   const runReview = async (repoId: string, prId: number, selectedAgents: string[], selectedFilesForContext: string[], minSeverity: string, strategy: 'grouped' | 'sequential') => {
     setReviewProgress('Récupération du diff...');
     setAgentStatuses(Object.fromEntries(selectedAgents.map(agent => [agent, 'waiting' as const])));
+    
+    const startTime = Date.now();
     const result = await (window as any).api.runReview(repoId, prId, selectedAgents, selectedFilesForContext, minSeverity, strategy);
+    const duration = Math.floor((Date.now() - startTime) / 1000);
+    
+    const platform = typeof prId === 'number' && prId === 0 ? 'local' : 'remote';
+    
+    const historyItem = {
+      id: Date.now().toString(),
+      repoId,
+      prId: result.prId || prId,
+      date: new Date().toISOString(),
+      action: platform === 'local' ? 'Analyse locale' : 'Analyse distante PR',
+      status: 'success',
+      duration,
+      platform,
+      agents: selectedAgents,
+      violationsCount: result.violations?.length || 0,
+      violations: result.violations
+    };
+    await (window as any).api.saveHistory(historyItem);
+    
     setCurrentReview(result);
     setReviewProgress('');
   };
@@ -60,21 +100,29 @@ export default function App() {
   if (!hasLoadedConfig) return null;
 
   if (currentReview) {
-    return <ReviewReport
-      review={currentReview}
-      onDone={(historyId?: string) => {
-        setCurrentReview(null);
-        if (historyId) setLastHistoryId(historyId);
-      }}
-    />;
+    return (
+      <ThemeContext.Provider value={{ isDark, toggleDark }}>
+        <ReviewReport
+          review={currentReview}
+          onDone={(historyId?: string) => {
+            setCurrentReview(null);
+            if (historyId) setLastHistoryId(historyId);
+          }}
+        />
+      </ThemeContext.Provider>
+    );
   }
 
-  return <Dashboard
-    config={config}
-    setConfig={setConfig}
-    onRunReview={runReview}
-    reviewProgress={reviewProgress}
-    agentStatuses={agentStatuses}
-    lastHistoryId={lastHistoryId}
-  />;
+  return (
+    <ThemeContext.Provider value={{ isDark, toggleDark }}>
+      <Dashboard
+        config={config}
+        setConfig={setConfig}
+        onRunReview={runReview}
+        reviewProgress={reviewProgress}
+        agentStatuses={agentStatuses}
+        lastHistoryId={lastHistoryId}
+      />
+    </ThemeContext.Provider>
+  );
 }

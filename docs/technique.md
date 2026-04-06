@@ -1,6 +1,6 @@
 # Documentation Technique — AI Code Reviewer
 
-> Version 0.1.0-beta  
+> Version 0.2.0-beta  
 > Développeur : Achref TLILI — ONEPOINT
 
 ---
@@ -12,7 +12,7 @@ L'application repose sur un ensemble de technologies modernes combinant dévelop
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    ELECTRON (Main Process)           │
-│  main.ts  ←→  gitClients.ts  ←→  agents.ts         │
+│  main.ts  ←→  gitClients.ts (incl. localGit.ts) ←→  agents.ts      │
 │     ↕              ↕                                 │
 │  store.ts       webhook.ts (ngrok)                   │
 └──────────────────────┬──────────────────────────────┘
@@ -37,8 +37,10 @@ L'application repose sur un ensemble de technologies modernes combinant dévelop
 | Styles | **Tailwind CSS 3** |
 | LLM (option 1) | **Google Gemini** (`@google/generative-ai`) |
 | LLM (option 2) | **Groq** (`groq-sdk`) |
+| LLM (option 3) | **Fournisseur OpenAI-Compatible** (`openai`) |
 | GitHub | **@octokit/rest** |
 | GitLab | **@gitbeaker/rest** |
+| Git Local | **Commandes fs/child_process natives** |
 | Tunnel local | **ngrok** (`ngrok` v5 beta) |
 | Webhook server | **Express 5** |
 | Packaging | **electron-builder** |
@@ -54,6 +56,7 @@ ai-code-reviewer/
 │   ├── preload.ts          # Bridge IPC → exposes window.api au renderer
 │   ├── agents.ts           # Intégration LLM multi-agents, parsing JSON
 │   ├── gitClients.ts       # GitHub/GitLab : diff, PRs, commentaires, merge
+│   ├── localGit.ts         # Intégration Git Locale via execSync / fs
 │   ├── store.ts            # Persistance JSON (~/.code-review-tool/)
 │   └── webhook.ts          # Serveur Express + tunnel ngrok
 ├── src/                    # Frontend React
@@ -61,6 +64,7 @@ ai-code-reviewer/
 │   └── components/
 │       ├── Modal.tsx       # Composant générique de fenêtre modale
 │       ├── ConfigModal.tsx # Fenêtre de configuration (Git, IA, Webhooks)
+│       ├── CustomProviderModal.tsx # Fenêtre de configuration pour IA perso
 │       ├── Dashboard.tsx   # Vue principale (gère l'état de toutes les modales)
 │       ├── ReviewReport.tsx# Rapport de revue + diff + actions
 │       ├── HistoryModal.tsx# Fenêtre d'historique des actions
@@ -87,7 +91,10 @@ Toutes les méthodes sont exposées via `preload.ts` dans `window.api` :
 | `getRepos()` | Renderer → Main | Liste les dépôts de l'utilisateur |
 | `getPendingPRs(repoId)` | Renderer → Main | PRs ouvertes d'un dépôt |
 | `getAllPendingPRsCount()` | Renderer → Main | PRs + détails par dépôt (tous dépôts) |
-| `runReview(repoId, prId, agents)` | Renderer → Main | Lance l'analyse multi-agents |
+| `getPRFiles(repo, pr)` | Renderer → Main | Récupère tous les fichiers modifiés d'une PR/Dépôt |
+| `getRepoTree(repo, pr)` | Renderer → Main | Récupère l'arbre des fichiers d'un dépôt |
+| `getDiffLength(repo, pr)` | Renderer → Main | Calcule la taille de la somme des diffs exacts pour les jetons |
+| `runReview(...)` | Renderer → Main | Lance l'analyse multi-agents avec stratégie (groupée/séquentielle) |
 | `postReview({projectId, prId, comments})` | Renderer → Main | Publie les commentaires |
 | `mergeReview({projectId, prId, deleteBranch})` | Renderer → Main | Merge la PR |
 | `getHistory` / `saveHistory` | Renderer → Main | Historique des actions |
@@ -101,13 +108,14 @@ Toutes les méthodes sont exposées via `preload.ts` dans `window.api` :
 
 ```
 1. runReview() appelé avec [repoId, prId, agentIds]
-2. GitManager.getDiff(repoId, prId)  → rawDiff string
-3. Pour chaque agentId sélectionné :
+2. GitManager.getDiff(repoId, prId) ou LocalGitManager.getDiff()  → rawDiff string
+3. Pour chaque agentId sélectionné (ou regroupés si stratégie "grouped") :
    a. Chargement du prompt système (agents.ts)
-   b. Appel LLM (Gemini ou Groq) avec le diff
+   b. Appel LLM (Gemini, Groq ou Custom) avec le diff et les fichiers demandés (si "Deep")
    c. Parsing de la réponse JSON → violations[]
-   d. Émission 'review-progress' vers le renderer
-   e. Délai de 500ms (anti rate-limit)
+   d. Filtrage des violations par sévérité demandée
+   e. Émission 'review-progress' vers le renderer
+   f. Délai de 500ms (anti rate-limit pour API cloud)
 4. Agrégation de toutes les violations
 5. Résultat renvoyé → ReviewReport affiché
 ```
